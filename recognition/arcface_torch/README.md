@@ -9,6 +9,10 @@ torch >= 1.6.0
 ```
 
 ## Train on a single node 
+If you want to use 8 GPU to train, you should set `--nproc_per_node=8` and set `CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 `  
+If you want to use 4 GPU to train, you should set `--nproc_per_node=4` and set `CUDA_VISIBLE_DEVICES=0,1,2,3`  
+If you want to use 1 GPU to train, you should set `--nproc_per_node=1` ...  
+
 ```shell
 export OMP_NUM_THREADS=4
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 
@@ -41,21 +45,53 @@ CUDA_VISIBLE_DEVICES=0,1 python eval_ijbc.py \
 ```
 More details see [eval.md](docs/eval.md) in docs.
 
+## Speed Benchmark
+![Image text](https://github.com/nttstar/insightface-resources/blob/master/images/partial_fc_speed.png)
 
-## Model Zoo
+ArcFace_torch can train large-scale face recognition training set efficiently and quickly.  
+When the number of classes in training sets is greater than 300K and the training is sufficient, 
+partial fc sampling strategy will get same accuracy with several times faster training performance and smaller GPU memory.
+
+1. Different Parallel Methods Training Speed
+
+| Method                 | Bs128-r100-2 Million Identities | Bs128-r50-4 Million Identities | Bs64-r50-8 Million Identities |
+| :---                   |    :---                          | :---                            | :---                     |
+| Data Parallel          |    1                             | 1                               | 1                        |
+| Model Parallel         |    1362                          | 1600                            | 482                      |
+| Fp16 + Model Parallel  |    2006                          | 2165                            | 767                      | 
+| Fp16 + Partial Fc 0.1  |    3247                          | 4385                            | 3001                     | 
+
+2. Different Parallel Methods GPU Memory 
+
+| Method                 | Bs128-r100-2 Million Identities | Bs128-r50-4 Million Identities | Bs64-r50-8 Million Identities |
+| :---                   |    :---                          | :---                            | :---                     |
+| Data Parallel          |    OOM                           | OOM                             | OOM                      |
+| Model Parallel         |    27382                         | 30322                           | 32182                    |
+| Fp16 + Model Parallel  |    20310                         | 26622                           | 32182                    | 
+| Fp16 + Partial Fc 0.1  |    11987                         | 10890                           | 11108                    | 
+
+
+## Model Zoo  
+
+The models are available for non-commercial research purposes only.
+
+All Model Can be found in here.  
+[Baidu Yun Pan](https://pan.baidu.com/s/1CL-l4zWqsI1oDuEEYVhj-g):   e8pw  
+
 ### MS1MV3
-|   Datasets          | backbone | IJBC(1e-05) | IJBC(1e-04) |agedb30|cfp_fp|lfw  | 
-| :---:               | :---     | :---        | :---        |:---   |:---  |:--- |  
-| MS1MV3-Arcface      | r18      |   92.08     |  94.68      |97.65  |97.63 |99.73|
-| MS1MV3-Arcface      | r34      |             |             |       |      |     | 
-| MS1MV3-Arcface      | r50      |   94.79     |  96.43      |98.28  |98.89 |99.85| 
-| MS1MV3-Arcface      | r50-amp  |   94.72     |  96.41      |98.30  |99.06 |99.85| 
-| MS1MV3-Arcface      | r100     |   95.22     |  96.87      |98.45  |99.19 |99.85| 
-
+|   Datasets          |    log     | backbone    | IJBC(1e-05) | IJBC(1e-04) |agedb30|cfp_fp|lfw  | 
+| :---:               |    :---    | :---        | :---        | :---        |:---   |:---  |:--- |  
+| MS1MV3-Arcface      |[log](https://raw.githubusercontent.com/anxiangsir/insightface_arcface_log/master/ms1mv3_arcface_r18/training.log)             | r18                 | 92.08 | 94.68 | 97.65 | 97.63 | 99.73 |
+| MS1MV3-Arcface      |[log](https://raw.githubusercontent.com/anxiangsir/insightface_arcface_log/master/ms1mv3_arcface_r34/training.log)             | r34                 | 94.13 | 95.98 | 98.05 | 98.60 | 99.80 | 
+| MS1MV3-Arcface      |[log](https://raw.githubusercontent.com/anxiangsir/insightface_arcface_log/master/ms1mv3_arcface_r50/training.log)             | r50                 | 94.79 | 96.43 | 98.28 | 98.89 | 99.85 | 
+| MS1MV3-Arcface      |[log](https://raw.githubusercontent.com/anxiangsir/insightface_arcface_log/master/ms1mv3_arcface_r50_fp16/training.log)        | r50-fp16            | 94.72 | 96.41 | 98.30 | 99.06 | 99.85 | 
+| MS1MV3-Arcface      |[log](https://raw.githubusercontent.com/anxiangsir/insightface_arcface_log/master/ms1mv3_arcface_r100/training.log)            | r100                | 95.22 | 96.87 | 98.45 | 99.19 | 99.85 | 
+   
 ### Glint360k
-|   Datasets          | backbone | IJBC(1e-05) | IJBC(1e-04) |agedb30|cfp_fp|lfw  | 
-| :---:               | :---     | :---        | :---        |:---   |:---  |:--- |
-| Glint360k-Cosface   | r100     |  96.19      | 97.39       |98.52  |99.26 |99.83|
+|   Datasets          | log   |backbone               | IJBC(1e-05) | IJBC(1e-04) |agedb30|cfp_fp|lfw  | 
+| :---:               | :---  |:---                   | :---        | :---        |:---   |:---  |:--- |
+| Glint360k-Cosface   |[log](https://raw.githubusercontent.com/anxiangsir/insightface_arcface_log/master/glint360k_cosface_r100/training.log)         |r100                 | 96.19 | 97.39 | 98.52 | 99.26 | 99.83 |
+| Glint360k-Cosface   |[log](https://raw.githubusercontent.com/anxiangsir/insightface_arcface_log/master/glint360k_cosface_r100_fp16_0.1/training.log)|r100-fp16-sample-0.1 | 95.95 | 97.35 | 98.57 | 99.30 | 99.85 |
 
 More details see [eval.md](docs/modelzoo.md) in docs.
 
